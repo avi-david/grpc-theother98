@@ -71,9 +71,16 @@ public class HelloWorldClient {
     return client.blockingStub.createPost(builder.build());
   }
 
-  Iterator<PostFeedView> getFeed(List<String> tags) {
+  Iterator<PostFeedView> getFeed(List<String> tags, String pageId, Integer pageSize) {
     if (client == null) return null;
-    return blockingStub.getFeed(FeedType.newBuilder().addAllPostTags(tags).build());
+    FeedRequest.Builder builder = FeedRequest.newBuilder().addAllPostTags(tags);
+    if (pageId != null && !pageId.isEmpty()) {
+      builder.setPageId(pageId);
+    }
+    if (pageSize != null && pageSize > 0) {
+      builder.setPageSize(pageSize);
+    }
+    return blockingStub.getFeed(builder.build());
   }
 
   Result createComment(String postViewId, Comment comment) {
@@ -116,25 +123,26 @@ public class HelloWorldClient {
       try {
         ArrayList<String> postTags = new ArrayList<>();
         postTags.add("forum");
-        Iterator<PostFeedView> postFeedViews = client.getFeed(postTags);
+        Iterator<PostFeedView> postFeedViews = client.getFeed(postTags, "5ba84cb730341313fc6a42df", null);
         while (postFeedViews.hasNext()) {
           PostFeedView postFeedView = postFeedViews.next();
+          logger.info(postFeedView.getPostViewId());
           logger.info("Number of comments before insert: " + Long.toString(postFeedView.getNumberOfComments()));
-          PostView postView = client.getPost(postFeedView.getPostViewId());
-          if (postView != null) {
-            Comment.Builder builder = Comment.newBuilder().setAuthorHandle("avi");
-            ArrayList<ContentBlock> contentBlocks = new ArrayList<>();
-            contentBlocks.add(ContentBlock.newBuilder()
-                    .setType(ContentBlock.ContentBlockType.Text)
-                    .setContent("Test comment").build());
-            builder.addAllContentBlocks(contentBlocks);
-            Result createCommentResult = client.createComment(postView.getId(), builder.build());
-            logger.info("Create comment result " + createCommentResult.getStatusCode().toString());
-
-            postView = client.getPost(postFeedView.getPostViewId());
-            logger.info("Number of comments after insert: " + Integer.toString(postView.getCommentsCount()));
-            break;
-          }
+//          PostView postView = client.getPost(postFeedView.getPostViewId());
+//          if (postView != null) {
+//            Comment.Builder builder = Comment.newBuilder().setAuthorHandle("avi");
+//            ArrayList<ContentBlock> contentBlocks = new ArrayList<>();
+//            contentBlocks.add(ContentBlock.newBuilder()
+//                    .setType(ContentBlock.ContentBlockType.Text)
+//                    .setContent("Test comment").build());
+//            builder.addAllContentBlocks(contentBlocks);
+//            Result createCommentResult = client.createComment(postView.getId(), builder.build());
+//            logger.info("Create comment result " + createCommentResult.getStatusCode().toString());
+//
+//            postView = client.getPost(postFeedView.getPostViewId());
+//            logger.info("Number of comments after insert: " + Integer.toString(postView.getCommentsCount()));
+//            break;
+//          }
         }
       } catch (Exception e) {
         logger.warning(e.getLocalizedMessage());

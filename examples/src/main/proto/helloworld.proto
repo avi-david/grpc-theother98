@@ -22,21 +22,23 @@ package helloworld;
 
 // The greeting service definition.
 service TheOther98 {
-  // Sends a greeting
-//  rpc SayHello (HelloRequest) returns (HelloReply) {}
-  rpc GetFeed(FeedType) returns (stream PostFeedView) {}
-  rpc GetPost (Id) returns (PostView) {}
-  rpc GetProfile(Handle) returns (Profile) {}
-  rpc CreatePost(Post) returns (Result) {}
-  rpc CreateComment(Comment) returns (Result) {}
+    // Sends a greeting
+    //  rpc SayHello (HelloRequest) returns (HelloReply) {}
+    rpc GetFeed (FeedRequest) returns (stream PostFeedView) {}
+    rpc GetPost (Id) returns (PostView) {}
+    rpc GetProfile (Handle) returns (Profile) {}
+    rpc CreatePost (Post) returns (Result) {}
+    rpc CreateComment (Comment) returns (Result) {}
 }
 
 message Id {
     string value = 1;
 }
 
-message FeedType {
+message FeedRequest {
     repeated string postTags = 1;
+    string pageId = 2;
+    int32 pageSize = 3;
 }
 
 message Handle {
@@ -98,6 +100,7 @@ message PostFeedView {
     PostSmallView postSmallView = 2;
     int64 numberOfComments = 3;
     int64 dateOfLastComment = 4;
+    string nextPageId = 5;
 }
 
 message PostPermissions {

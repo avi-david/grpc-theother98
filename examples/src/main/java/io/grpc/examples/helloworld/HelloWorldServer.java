@@ -44,6 +44,7 @@ import java.util.logging.Logger;
 
 import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Filters.gt;
 import static com.mongodb.client.model.Filters.in;
 import static com.mongodb.client.model.Filters.or;
 
@@ -127,10 +128,16 @@ public class HelloWorldServer {
 
   static class GreeterImpl extends TheOther98Grpc.TheOther98ImplBase {
     @Override
-    public void getFeed(FeedType request, StreamObserver<PostFeedView> responseObserver) {
+    public void getFeed(FeedRequest request, StreamObserver<PostFeedView> responseObserver) {
       ArrayList<PostFeedView> postsResultList = new ArrayList<>();
-      Bson filter = in(CollectionPosts.FieldNames.PostTags, request.getPostTagsList());
-      MongoCursor<Document> cursor = CollectionPosts.getCollection(serverInstance).find(filter).iterator();
+      int limit = 20;
+      if (request.getPageSize() > 0) limit = request.getPageSize();
+      Bson filter = and(in(CollectionPosts.FieldNames.PostTags, request.getPostTagsList()),
+              gt(CollectionPosts.FieldNames.Id, new ObjectId(request.getPageId())));
+      MongoCursor<Document> cursor = CollectionPosts.getCollection(serverInstance)
+              .find(filter)
+              .limit(limit)
+              .iterator();
       while (cursor.hasNext()) {
         Document postDocument = cursor.next();
         String postString = postDocument.toJson();
@@ -146,7 +153,7 @@ public class HelloWorldServer {
           PostFeedView.Builder builder = PostFeedView.newBuilder().setPostSmallView(post.getPostSmallView());
           builder.setPostViewId(getObjectIdString(postDocument));
           builder.setNumberOfComments(post.getCommentsCount());
-//          builder.setDateOfLastComment(post.getCommentsList().get(post.getCommentsCount() - 1))
+          builder.setDateOfLastComment(post.getCommentsList().get(post.getCommentsCount() - 1).getCreateDateMillis());
           postsResultList.add(builder.build());
         }
       }
@@ -155,7 +162,6 @@ public class HelloWorldServer {
         responseObserver.onNext(post);
       }
       responseObserver.onCompleted();
-//      super.getFeed(request, responseObserver);
     }
 
     @Override

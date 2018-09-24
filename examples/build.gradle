@@ -41,6 +41,12 @@ dependencies {
 
     compile "com.google.protobuf:protobuf-java-util:${protobufVersion}"
 
+    compile 'org.mongodb:mongodb-driver-core:3.8.2'
+    compile 'org.mongodb:bson:3.0.1'
+    compile 'org.mongodb:mongodb-driver:3.8.2'
+    compile "org.mongodb:mongo-java-driver:3.8.2"
+    compile 'com.google.code.gson:gson:2.8.5'
+
     testCompile "io.grpc:grpc-testing:${grpcVersion}"
     testCompile "junit:junit:4.12"
     testCompile "org.mockito:mockito-core:1.9.5"

@@ -21,9 +21,38 @@ option objc_class_prefix = "HLW";
 package helloworld;
 
 // The greeting service definition.
-service Greeter {
+service TheOther98 {
   // Sends a greeting
-  rpc SayHello (HelloRequest) returns (HelloReply) {}
+//  rpc SayHello (HelloRequest) returns (HelloReply) {}
+  rpc GetFeed(FeedType) returns (stream PostFeedView) {}
+  rpc GetPost (Id) returns (PostView) {}
+  rpc GetProfile(Handle) returns (Profile) {}
+  rpc CreatePost(Post) returns (Result) {}
+  rpc CreateComment(Comment) returns (Result) {}
+}
+
+message Id {
+    string value = 1;
+}
+
+message FeedType {
+    repeated string postTags = 1;
+}
+
+message Handle {
+    string value = 1;
+}
+
+message Result {
+    StatusCode statusCode = 1;
+
+    enum StatusCode {
+        OK = 0;
+        UNAUTHORIZED = 1;
+        FORBIDDEN = 2;
+        NOT_FOUND = 3;
+        INTERNAL_ERROR = 4;
+    }
 }
 
 // The request message containing the user's name.
@@ -34,4 +63,112 @@ message HelloRequest {
 // The response message containing the greetings
 message HelloReply {
   string message = 1;
+  HelloRequest request = 2;
+}
+
+message Void {}
+
+message PostSmallView {
+    string title = 1;
+    string description = 2;
+    string featuredImageLink = 3;
+    string featuredVideoLink = 4;
+    string featuredCaption = 5;
+    int64 createDate = 6;
+    string type = 7;
+    string authorHandle = 8;
+}
+
+message Post {
+    PostSmallView postSmallView = 1;
+    repeated ContentBlock contentBlocks = 2;
+    repeated string postTags = 3;
+}
+
+message PostView {
+    string id = 1;
+    PostSmallView postSmallView = 2;
+    repeated ContentBlock contentBlocks = 3;
+    repeated string postTags = 4;
+    repeated Comment comments = 5;
+}
+
+message PostFeedView {
+    string postViewId = 1;
+    PostSmallView postSmallView = 2;
+    int64 numberOfComments = 3;
+    int64 dateOfLastComment = 4;
+}
+
+message PostPermissions {
+    bool canEdit = 1;
+}
+
+message ProfileSmallView {
+  string handle = 2;
+  string email = 3;
+  string firstName = 4;
+  string lastName = 5;
+  string type = 6;
+  string theme = 7;
+  bool isLoggedInUser = 8;
+}
+
+message Profile {
+  string handle = 1;
+  string firstName = 2;
+  string lastName = 3;
+  string description = 4;
+  string phone = 5;
+  string email = 6;
+  string gender = 7;
+  string type = 8;
+  string theme = 9;
+//  repeated ProfilePrivateField profilePrivateFields = 10;
+}
+
+message ProfilePrivateField {
+  int32 colName = 1;
+}
+
+message ProfilePermissions {
+  bool editProfile = 1;
+}
+
+message ProfileView {
+  int64 id = 1;
+  bool isFollowed = 2;
+  int32 numberOfFollowers = 3;
+  bool isLoggedInUser = 4;
+  string securityId = 5;
+  ProfilePermissions profilePermissions = 6;
+}
+
+message ContentBlock {
+    ContentBlockType type = 1;
+    string content = 2;
+    repeated ContentBlock children = 3;
+
+    enum ContentBlockType {
+      Text = 0;
+      Image = 1;
+      ImageGallery = 2;
+      Link = 3;
+      Video = 4;
+      Quote = 5;
+    }
+}
+
+message Comment {
+    int64 id = 1;
+    string postViewId = 2;
+    int64 createDateMillis = 3;
+    string authorHandle = 4;
+    repeated ContentBlock contentBlocks = 5;
+    int64 score = 6;
+}
+
+message CommentView {
+    Comment comment = 1;
+    int32 userVote = 3;
 }

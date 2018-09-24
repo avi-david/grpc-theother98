@@ -30,6 +30,9 @@ bin
 # OS X
 .DS_Store
 
+examples/db
+examples/journal
+
 # Emacs
 *~
 \#*\#

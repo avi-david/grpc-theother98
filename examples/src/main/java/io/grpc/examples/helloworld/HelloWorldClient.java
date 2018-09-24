@@ -19,6 +19,10 @@ package io.grpc.examples.helloworld;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.StatusRuntimeException;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -30,7 +34,7 @@ public class HelloWorldClient {
   private static final Logger logger = Logger.getLogger(HelloWorldClient.class.getName());
 
   private final ManagedChannel channel;
-  private final GreeterGrpc.GreeterBlockingStub blockingStub;
+  final TheOther98Grpc.TheOther98BlockingStub blockingStub;
 
   /** Construct client connecting to HelloWorld server at {@code host:port}. */
   public HelloWorldClient(String host, int port) {
@@ -44,40 +48,98 @@ public class HelloWorldClient {
   /** Construct client for accessing HelloWorld server using the existing channel. */
   HelloWorldClient(ManagedChannel channel) {
     this.channel = channel;
-    blockingStub = GreeterGrpc.newBlockingStub(channel);
+    blockingStub = TheOther98Grpc.newBlockingStub(channel);
   }
 
   public void shutdown() throws InterruptedException {
     channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
   }
 
-  /** Say hello to server. */
-  public void greet(String name) {
-    logger.info("Will try to greet " + name + " ...");
-    HelloRequest request = HelloRequest.newBuilder().setName(name).build();
-    HelloReply response;
-    try {
-      response = blockingStub.sayHello(request);
-    } catch (StatusRuntimeException e) {
-      logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
-      return;
-    }
-    logger.info("Greeting: " + response.getMessage());
+  Profile getProfile(String handle) {
+    if (client == null) return null;
+    return client.blockingStub.getProfile(Handle.newBuilder().setValue(handle).build());
+  }
+
+  PostView getPost(String id) {
+    if (client == null) return null;
+    return client.blockingStub.getPost(Id.newBuilder().setValue(id).build());
+  }
+
+  Result createPost(String tag, PostSmallView postSmallView, List<ContentBlock> contentBlocks) {
+    if (client == null) return null;
+    Post.Builder builder = Post.newBuilder().setPostSmallView(postSmallView).addPostTags(tag).addAllContentBlocks(contentBlocks);
+    return client.blockingStub.createPost(builder.build());
+  }
+
+  Iterator<PostFeedView> getFeed(List<String> tags) {
+    if (client == null) return null;
+    return blockingStub.getFeed(FeedType.newBuilder().addAllPostTags(tags).build());
+  }
+
+  Result createComment(String postViewId, Comment comment) {
+    if (client == null) return null;
+    return blockingStub.createComment(comment.toBuilder().setPostViewId(postViewId).build());
   }
 
   /**
    * Greet server. If provided, the first element of {@code args} is the name to use in the
    * greeting.
    */
+  static HelloWorldClient client;
   public static void main(String[] args) throws Exception {
-    HelloWorldClient client = new HelloWorldClient("localhost", 50051);
+    client = new HelloWorldClient("localhost", 27017);
     try {
-      /* Access a service running on the local machine on port 50051 */
-      String user = "world";
-      if (args.length > 0) {
-        user = args[0]; /* Use the arg as the name to greet if provided */
+//      try {
+//        PostView post = client.blockingStub.getPost(Id.newBuilder().setValue(4).build());
+//        logger.info(post.getPostSmallView().getTitle());
+//        logger.info(post.getPostSmallView().getAuthorHandle());
+//      } catch (Exception e) {
+//        logger.log(Level.WARNING, e.getMessage());
+//      }
+
+//      try {
+//        Profile profile = client.getProfile("alex");
+//        logger.info(profile.getFirstName());
+//      } catch (Exception e) {
+//        logger.log(Level.WARNING, e.getMessage());
+//      }
+
+//      try {
+//        PostSmallView postSmallView = PostSmallView.newBuilder().setTitle("Test").setAuthorHandle("alex").build();
+//        Result result = client.createPost("forum", postSmallView, new ArrayList<ContentBlock>());
+//        logger.info(result.getStatusCode().toString());
+//      } catch (Exception e) {
+//        logger.log(Level.WARNING, e.getMessage());
+//      }
+
+
+      try {
+        ArrayList<String> postTags = new ArrayList<>();
+        postTags.add("forum");
+        Iterator<PostFeedView> postFeedViews = client.getFeed(postTags);
+        while (postFeedViews.hasNext()) {
+          PostFeedView postFeedView = postFeedViews.next();
+          logger.info("Number of comments before insert: " + Long.toString(postFeedView.getNumberOfComments()));
+          PostView postView = client.getPost(postFeedView.getPostViewId());
+          if (postView != null) {
+            Comment.Builder builder = Comment.newBuilder().setAuthorHandle("avi");
+            ArrayList<ContentBlock> contentBlocks = new ArrayList<>();
+            contentBlocks.add(ContentBlock.newBuilder()
+                    .setType(ContentBlock.ContentBlockType.Text)
+                    .setContent("Test comment").build());
+            builder.addAllContentBlocks(contentBlocks);
+            Result createCommentResult = client.createComment(postView.getId(), builder.build());
+            logger.info("Create comment result " + createCommentResult.getStatusCode().toString());
+
+            postView = client.getPost(postFeedView.getPostViewId());
+            logger.info("Number of comments after insert: " + Integer.toString(postView.getCommentsCount()));
+            break;
+          }
+        }
+      } catch (Exception e) {
+        logger.warning(e.getLocalizedMessage());
       }
-      client.greet(user);
+
     } finally {
       client.shutdown();
     }
